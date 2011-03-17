@@ -5,8 +5,8 @@ require 'connection.php';
 require 'functions.php';
 
 $tagArray = array('race', 'facebook', 'twitter', 'family', 'camera', 'bluetooth', 'library', 'video', 'photo', 
-'gallery', 'free', 'age', 'car', 'ipad', 'time', 'magazine', 'radio', 'shopping', 'chess', 'tv', 'report', 'spy',
-'surf', 'browser', 'chat', 'recorder' , 'converter' , 'flight' , 'tracker' , 'joke', 'card', 'guitar', 'karaoke', 'skype', 'football', 'bible', 'reader', 'people', 'map', 'google', 'speed', 'clock', 'alerm', 'baby', 'ebay', 'horoscope', 'health', 'beauty', 'food', 'flash', 'tutor', 'tips','gps'
+'gallery', 'free', 'car', 'ipad', 'time', 'magazine', 'radio', 'shopping', 'chess', 'tv', 'report', 'spy',
+'surf', 'browser', 'chat', 'recorder' , 'converter' , 'flight' , 'tracker' , 'joke', 'card', 'guitar', 'karaoke', 'skype', 'football', 'bible', 'reader', 'people', 'map', 'google', 'speed', 'clock', 'alerm', 'baby', 'ebay', 'horoscope', 'health', 'beauty', 'food', 'flash', 'tutor', 'tips','gps', 'star'
 );
 
 
@@ -118,13 +118,14 @@ if(++$i==1)break;
 
 //requirement
 foreach($sep->getElementsByTagName('p')as $node)if(!$node->hasAttribute('style'))if(preg_match('/Requirements:/',$node->nodeValue))$requirement=$node->nodeValue;
-$requirement=escape_quote($requirement);
+$requirement=mysql_real_escape_string($requirement);
 
 
 
 //Title
 $title=preg_replace('/for+.*+(\n+Store)?/','',$sep->getElementsByTagName('title')->item(0)->nodeValue);
-$title=trim(escape_quote($title));
+$title=trim($title);
+$title = mysql_real_escape_string(mb_convert_encoding($title, 'HTML-ENTITIES', "UTF-8"));
 
 //trimming the link
 
@@ -138,7 +139,7 @@ $gap = '';
 //$gap='<div style="height:5px;"></div>';
 $scr_block='';
 
-$post='<div style="text-align:center;">'.'<img src='.$image_src.'>'.'</div>';
+$post='<div style="text-align:center;">'.'<img src='.$image_src." alt=$title>".'</div>';
 $post.='<div style="text-align:center;font-size:17px;">'.'<h3>Price: '.$price.'</h3></div>';
 $post.=$description.$gap;
 $post.=$gap.$requirement;
@@ -153,11 +154,11 @@ $user=1;
 //inserting into database
 $post_name=sanitize_title($title);
 
-$title = mysql_real_escape_string(mb_convert_encoding($title, 'HTML-ENTITIES', "UTF-8"));
+
 
 
 //inserting into the wp_posts
-$sql="INSERT INTO wp_posts(post_author,post_date,post_title,post_content,post_name)"."VALUES('$user','$date','$title','$post','$post_name');";
+$sql="INSERT INTO wp_posts(post_author,post_date,post_date_gmt,post_title,post_content,post_name,post_modified,post_modified_gmt)"."VALUES('$user','$date','$date','$title','$post','$post_name','$date','$date');";
 mysql_query($sql) or die(mysql_error());
 
 //mysql_query("INSERT INTO wp_auto_valid(post_id,links) VALUES('$link_id')");
@@ -196,7 +197,7 @@ mysql_query("INSERT IGNORE INTO wp_term_relationships(object_id,term_taxonomy_id
  * */
 
 foreach($tagArray as $tag)
-	if(preg_match("/$tag/i", $title)):
+	if(preg_match("/\b$tag\b/i", $title)):
 	if(!in_table('name','wp_terms',$tag))mysql_query("INSERT INTO wp_terms(name,slug) VALUES('$tag','$tag')") or die(mysql_error());
 	
 	$result=mysql_query("SELECT term_id FROM wp_terms WHERE name='$tag'") or die(mysql_error());
