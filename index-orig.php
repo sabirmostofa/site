@@ -6,7 +6,7 @@ require 'functions.php';
 
 $tagArray = array('race', 'facebook', 'twitter', 'family', 'camera', 'bluetooth', 'library', 'video', 'photo', 
 'gallery', 'free', 'car', 'ipad', 'time', 'magazine', 'radio', 'shopping', 'chess', 'tv', 'report', 'spy',
-'surf', 'browser', 'chat', 'recorder' , 'converter' , 'flight' , 'tracker' , 'joke', 'card', 'guitar', 'karaoke', 'skype', 'football', 'bible', 'reader', 'people', 'map', 'google', 'speed', 'clock', 'alerm', 'baby', 'ebay', 'horoscope', 'health', 'beauty', 'food', 'flash', 'tutor', 'tips','gps', 'star'
+'surf', 'browser', 'chat', 'recorder' , 'converter' , 'flight' , 'tracker' , 'joke', 'card', 'guitar', 'karaoke', 'skype', 'football', 'bible', 'reader', 'people', 'map', 'google', 'speed', 'clock', 'alerm', 'baby', 'ebay', 'horoscope', 'health', 'beauty', 'food', 'flash', 'tutor', 'tips','gps', 'star', 'astronomy'
 );
 
 
@@ -195,9 +195,10 @@ mysql_query("INSERT IGNORE INTO wp_term_relationships(object_id,term_taxonomy_id
  * inserting  post tags similar to category
  * 
  * */
-
+$matchedTag='';
 foreach($tagArray as $tag)
 	if(preg_match("/\b$tag\b/i", $title)):
+	$matchedTag=$tag;
 	if(!in_table('name','wp_terms',$tag))mysql_query("INSERT INTO wp_terms(name,slug) VALUES('$tag','$tag')") or die(mysql_error());
 	
 	$result=mysql_query("SELECT term_id FROM wp_terms WHERE name='$tag'") or die(mysql_error());
@@ -221,8 +222,47 @@ mysql_query("INSERT IGNORE INTO wp_term_relationships(object_id,term_taxonomy_id
 	endif;
 	
 	
-	
+	//inserting guid in the wp_posts table
+	$guid = SITE_NAME."/?p=$post_id";
+	$query="UPDATE wp_posts SET guid='$guid' WHERE ID='$post_id'";
+mysql_query($query) or die(mysql_error());
 
+//SEO works
+$seo_raw_des = preg_replace('?<h4>+[^<]*+</h4>|<p>|</p>|<br/>?s','',$description);
+
+$seo_keywords='';
+if($matchedTag!='')
+$seo_keywords.=$matchedTag.' iphone application,';
+//making keywords
+preg_match_all('/\b[a-z0-9]+\b/i',$title,$ar);
+
+$seo_count=0;
+foreach($ar[0] as $ele){
+
+	$seo_keywords.= $ele.' ';
+	$seo_count++;
+	if($seo_count == 2)break;
+	
+	
+	}
+	
+$seo_keywords=trim($seo_keywords,',');
+$seo_title= $title;
+$seo_description=trim(substr($seo_raw_des,0,150));
+
+$seo= array(
+'title' => $seo_title,
+'keywords' => $seo_keywords,
+ 'description' => $seo_description
+ );
+
+foreach($seo as $key=>$value){
+	$metakey='_aioseop_'.$key;
+$sql="INSERT INTO wp_postmeta(post_id,meta_key,meta_value)"."VALUES('$post_id','$metakey','$value')";
+mysql_query($sql) or die(mysql_error());
+
+	
+}
 
 
 //Last Step insterting the link into the database
