@@ -31,7 +31,86 @@ $links[] =  $link->getAttribute('href');
 
 }
 
-var_dump($links);
+
+//adding more links
+
+$ult_link = 'http://itunes.apple.com/us/genre/ios/id36?mt=8';
+$sep=new DOMDocument();
+@$sep->loadHTMLFile($ult_link);
+$count=0;
+$genre_array= array();
+foreach($sep->getElementsByTagName('a')as $node){
+
+if(preg_match('?http://itunes.apple.com/us/genre/ios?', $node->getAttribute('href'))){
+if(preg_match('?http://itunes.apple.com/us/genre/ios/id36?', $node->getAttribute('href')))continue;
+$genre_array[]=$node->getAttribute('href');
+$count++;
+}
+}
+
+$cat_link_counter=0;
+$final_array=$genre_array;
+shuffle($final_array);
+
+//The critical part to recursively visit all the itunes pages!
+foreach($final_array as $solo_link){
+//echo $url_genre.$solo_link.'<br/>'.'first loop'.'<br/>';
+$genre_dom=new DOMDocument();
+@$genre_dom->loadHTMLFile($solo_link);
+
+
+ foreach($genre_dom->getElementsByTagName('a') as $link_one){
+ if(preg_match('?http://itunes.apple.com/us/genre/+.+letter=[A-Z*]?',$link_one->getAttribute('href'))){
+ //echo $link_one->getAttribute('href').'second loop'.'<br/>';
+ $alpha_dom=new DOMDocument();
+ @$alpha_dom->loadHTMLFile($link_one->getAttribute('href'));
+    
+	$inner_array=array();
+	
+	
+	foreach($alpha_dom->getElementsByTagName('a') as $link_inner){
+	$load_main=1;
+	if(!in_array($link_inner->getAttribute('href'),$inner_array))
+	if(preg_match('?http://itunes.apple.com/us/genre/+.+letter=[A-Z*]+.+page=[0-9]*?',$link_inner->getAttribute('href')))
+	{
+	$load_main=0;
+	$num_dom=new DOMDocument();
+	@$num_dom->loadHTMLFile($link_inner->getAttribute('href'));
+		
+		
+		foreach($num_dom->getElementsByTagName('a') as $link_innermost){
+		if(preg_match('?http://itunes.apple.com/us/app/?',$link_innermost->getAttribute('href'))){
+		if(!in_array(preg_replace('/\?+.*/','',$link_innermost->getAttribute('href')),$links))
+		if(!preg_match('?[^A-Za-z0-9\'"; $%^&*()<>_\-+=`~/\]\\\|.,/@#!\?\[:]?',$link_innermost->nodeValue))
+		$links[]=preg_replace('/\?+.*/','',$link_innermost->getAttribute('href'));
+		}
+		}
+		$inner_array[]=$link_inner->getAttribute('href');		
+		}
+		
+		//if the number indexing not exists load from the general links
+		if($load_main)		
+		if(preg_match('?http://itunes.apple.com/us/app/?',$link_inner->getAttribute('href'))){
+		if(!in_array(preg_replace('/\?+.*/','',$link_inner->getAttribute('href')),$links))
+		if(!preg_match('?[^A-Za-z0-9\'"; $%^&*()<>_\-+=`~/\]\\\|.,/@#!\?\[:]?',$link_inner->nodeValue))
+		$links[]=preg_replace('/\?+.*/','',$link_inner->getAttribute('href'));
+		}
+		}
+		
+	
+ 
+ }
+ }
+ //this will get almost 3000 links so one is enough as chosen randomly
+ if(++$cat_link_counter==1)break;
+}
+
+shuffle($links);
+
+
+
+
+
 
 
 //counting posts
@@ -130,7 +209,7 @@ $title = mysql_real_escape_string(mb_convert_encoding($title, 'HTML-ENTITIES', "
 //trimming the link
 
 $link = trim(preg_replace('/mt+.*/','',$link), '?&');
-
+$link = urldecode(urlencode($link));
 
 
 //Making of Post
@@ -143,7 +222,7 @@ $post='<div style="text-align:center;">'.'<img src='.$image_src." alt=$title>".'
 $post.='<div style="text-align:center;font-size:17px;">'.'<h3>Price: '.$price.'</h3></div>';
 $post.=$description.$gap;
 $post.=$gap.$requirement;
-$post.='<div style="text-align:center;font-size:17px;">'.'<a href='.$link.' '.'target=_blank>'.'Download '.$title.' from the App Store</a></div>';
+$post.='<div style="text-align:center;font-size:17px;">'.'<a href="'.$link.'" '.'target=_blank>'.'Download '.$title.' from the App Store</a></div>';
 
 
 //the date format in the wordpress
@@ -234,6 +313,7 @@ $seo_keywords='';
 if($matchedTag!='')
 $seo_keywords.=$matchedTag.' iphone application,';
 //making keywords
+/*
 preg_match_all('/\b[a-z0-9]+\b/i',$title,$ar);
 
 $seo_count=0;
@@ -245,8 +325,8 @@ foreach($ar[0] as $ele){
 	
 	
 	}
-	
-$seo_keywords=trim($seo_keywords,',');
+*/	
+$seo_keywords=$title;
 $seo_title= $title;
 $seo_description=trim(substr($seo_raw_des,0,150));
 
