@@ -1,12 +1,12 @@
 <?php
 //required files
 require 'config.php' ;
-require 'connection.php';
+
 require 'functions.php';
 
 $tagArray = array('race', 'facebook', 'twitter', 'family', 'camera', 'bluetooth', 'library', 'video', 'photo', 
 'gallery', 'free', 'car', 'ipad', 'time', 'magazine', 'radio', 'shopping', 'chess', 'tv', 'report', 'spy',
-'surf', 'browser', 'chat', 'recorder' , 'converter' , 'flight' , 'tracker' , 'joke', 'card', 'guitar', 'karaoke', 'skype', 'football', 'bible', 'reader', 'people', 'map', 'google', 'speed', 'clock', 'alerm', 'baby', 'ebay', 'horoscope', 'health', 'beauty', 'food', 'flash', 'tutor', 'tips','gps', 'star', 'astronomy'
+'surf', 'browser', 'chat', 'recorder' , 'converter' , 'flight' , 'tracker' , 'joke', 'card', 'guitar', 'karaoke', 'skype', 'football', 'bible', 'reader', 'people', 'map', 'google', 'speed', 'clock', 'alerm', 'baby', 'ebay', 'horoscope', 'health', 'beauty', 'food', 'flash', 'tutor', 'tips','gps', 'star', 'astronomy', 'book', 'golf', 'robot', 'laugh', 'screen', 'sex', 'age','year','test','cricket','jokes','stuff','ajax','sword', 'movie', 'rank','programming','wine','iq','puzzle','panoroma','thousand','game','sports','channel','download','love','friend','web','design','art','kitchen','routine','schedule', 'job', 'data', 'war', 'dog', 'fantasy', 'dream', 'healthy', 'recipie', 'song', 'religion', 'phone', 'personality', 'truth', 'lie', 'iphone', 'ipad', 'programme', 'color',   'walk','blog','commerce','deluxe', 'extreme', 'motor', 'performance', 'bird', 'birds', 'life', 'beautiful', 'amazing', 'amazon', 'manual', 'digital', 'station', 'fact', 'weather', 'weapon', 'cat' ,'dog', 'pet', 'house', 'match', 'bungee', 'best', 'diet','runner','battle','weekly', 'finder','store','recipies','tool', 'castle', 'tune','live', 'poker', 'dice', 'word', 'keyboard', 'dungeon', 'puppet', 'study', 'language', 'helper', 'film', 'ultimate', 'groupon', 'shooting', 'jump', 'sound', 'soundbox', 'racing', 'zombie', 'farm', 'moon', 'kingdom', 'audio', 'jumble', 'pro', 'world', 'magic', 'mom','wallpaper','wallpapers', 'ringtone', 'ringtones', 'agent', 'trip', 'lite', 'warfare','daily', 'challenge', 'guide', 'rush', 'hour', 'fun', 'mahjong', 'market', 'paypal', 'yoga', 'wiki', 'alert', 'alerts', 'ball', 'max', 'ship', 'pirate', 'pirates', 'scanner', 'stress', '3D', 'chaser', 'story', 'bakery', 'lesson','piano','city', 'premium', 'backgammon', 'champion','simulator', 'classic','HD','mobile', 'vocabulary', 'learn', 'virtual'
 );
 
 
@@ -39,6 +39,7 @@ $sep=new DOMDocument();
 @$sep->loadHTMLFile($ult_link);
 $count=0;
 $genre_array= array();
+
 foreach($sep->getElementsByTagName('a')as $node){
 
 if(preg_match('?http://itunes.apple.com/us/genre/ios?', $node->getAttribute('href'))){
@@ -48,62 +49,39 @@ $count++;
 }
 }
 
-$cat_link_counter=0;
-$final_array=$genre_array;
-shuffle($final_array);
+shuffle($genre_array);
+$count=0;
+foreach($genre_array as $genre):
+if(++$count == 5)break;
+@$sep->loadHTMLFile($genre);
 
-//The critical part to recursively visit all the itunes pages!
-foreach($final_array as $solo_link){
-//echo $url_genre.$solo_link.'<br/>'.'first loop'.'<br/>';
-$genre_dom=new DOMDocument();
-@$genre_dom->loadHTMLFile($solo_link);
+foreach($sep->getElementsByTagName('a')as $node)
+if(preg_match('?http://itunes.apple.com/us/app/|http://itunes.apple.com/WebObjects/MZStore.woa/wa/viewSoftware?', $node->getAttribute('href')))
+if(!preg_match('?[^A-Za-z0-9\'"; $%^&*()<>_\-+=`~/\]\\\|.,/@#!\?\[:]?',$node->nodeValue))
+$links[]=$node->getAttribute('href');
 
+endforeach;
 
- foreach($genre_dom->getElementsByTagName('a') as $link_one){
- if(preg_match('?http://itunes.apple.com/us/genre/+.+letter=[A-Z*]?',$link_one->getAttribute('href'))){
- //echo $link_one->getAttribute('href').'second loop'.'<br/>';
- $alpha_dom=new DOMDocument();
- @$alpha_dom->loadHTMLFile($link_one->getAttribute('href'));
-    
-	$inner_array=array();
+require_once 'connection.php';
+
+//pinging the connection
+if(!mysql_ping($p)){
 	
-	
-	foreach($alpha_dom->getElementsByTagName('a') as $link_inner){
-	$load_main=1;
-	if(!in_array($link_inner->getAttribute('href'),$inner_array))
-	if(preg_match('?http://itunes.apple.com/us/genre/+.+letter=[A-Z*]+.+page=[0-9]*?',$link_inner->getAttribute('href')))
-	{
-	$load_main=0;
-	$num_dom=new DOMDocument();
-	@$num_dom->loadHTMLFile($link_inner->getAttribute('href'));
-		
-		
-		foreach($num_dom->getElementsByTagName('a') as $link_innermost){
-		if(preg_match('?http://itunes.apple.com/us/app/?',$link_innermost->getAttribute('href'))){
-		if(!in_array(preg_replace('/\?+.*/','',$link_innermost->getAttribute('href')),$links))
-		if(!preg_match('?[^A-Za-z0-9\'"; $%^&*()<>_\-+=`~/\]\\\|.,/@#!\?\[:]?',$link_innermost->nodeValue))
-		$links[]=preg_replace('/\?+.*/','',$link_innermost->getAttribute('href'));
-		}
-		}
-		$inner_array[]=$link_inner->getAttribute('href');		
-		}
-		
-		//if the number indexing not exists load from the general links
-		if($load_main)		
-		if(preg_match('?http://itunes.apple.com/us/app/?',$link_inner->getAttribute('href'))){
-		if(!in_array(preg_replace('/\?+.*/','',$link_inner->getAttribute('href')),$links))
-		if(!preg_match('?[^A-Za-z0-9\'"; $%^&*()<>_\-+=`~/\]\\\|.,/@#!\?\[:]?',$link_inner->nodeValue))
-		$links[]=preg_replace('/\?+.*/','',$link_inner->getAttribute('href'));
-		}
-		}
-		
-	
- 
- }
- }
- //this will get almost 3000 links so one is enough as chosen randomly
- if(++$cat_link_counter==1)break;
+	$p=mysql_connect(DB_HOST,DB_USERNAME,DB_PASS);
+if (!$p) {
+    die('Could not connect: ' . mysql_error());
 }
+echo 'Connected successfully';
+
+
+$selected=mysql_select_db(DB_NAME,$p);
+if (!$selected) {
+    die ('Can\'t use Database : ' . mysql_error());
+}
+	}
+	
+	echo 'after getting links';
+
 
 shuffle($links);
 
@@ -115,6 +93,7 @@ shuffle($links);
 
 //counting posts
 $link_count=0;
+$post_number=rand(15,25);
 
 //The Main loop
 foreach($links as $link):
@@ -129,6 +108,19 @@ $sep=new DOMDocument();
 @$sep->loadHTMLFile($link);
 if(!$sep->getElementById('content')){mysql_query("INSERT IGNORE INTO wp_auto_invalid(invalid_links)VALUES('$link_id')");}
 else{
+	
+//getting seo contents
+
+foreach($sep->getElementsByTagName('meta')as $node){
+	if($node->getAttribute('name') == 'keywords')
+	$seo_ultimate_keywords=$node->getAttribute('content');
+
+	if($node->getAttribute('name') == 'description'){
+	 $seo_description = $node->getAttribute('content');
+$seo_ultimate_description = preg_replace('/on the iTunes App Store/','',$seo_description);
+}
+	
+	}
 
 
 //getting Images
@@ -204,7 +196,14 @@ $requirement=mysql_real_escape_string($requirement);
 //Title
 $title=preg_replace('/for+.*+(\n+Store)?/','',$sep->getElementsByTagName('title')->item(0)->nodeValue);
 $title=trim($title);
+
+$alt_title = preg_replace("/'/",'',$title);
+
 $title = mysql_real_escape_string(mb_convert_encoding($title, 'HTML-ENTITIES', "UTF-8"));
+
+$alt_title = mysql_real_escape_string(mb_convert_encoding($alt_title, 'HTML-ENTITIES', "UTF-8"));
+
+
 
 //trimming the link
 
@@ -218,16 +217,16 @@ $gap = '';
 //$gap='<div style="height:5px;"></div>';
 $scr_block='';
 
-$post='<div style="text-align:center;">'.'<img src='.$image_src." alt=$title>".'</div>';
+$post='<div style="text-align:center;">'.'<img src='.$image_src." alt=\'$alt_title\'/>".'</div>';
 $post.='<div style="text-align:center;font-size:17px;">'.'<h3>Price: '.$price.'</h3></div>';
 $post.=$description.$gap;
 $post.=$gap.$requirement;
-$post.='<div style="text-align:center;font-size:17px;">'.'<a href="'.$link.'" '.'target=_blank>'.'Download '.$title.' from the App Store</a></div>';
+$post.='<div class="download_link" style="text-align:center;font-size:17px;">'.'<a href="'.$link.'" '.'target=_blank>'.'Download '.$title.' from the App Store</a></div>';
 
 
 //the date format in the wordpress
 $date=gmdate('Y-m-d H:i:s');
-$user=1;
+$user=rand(1,15);
 
 
 //inserting into database
@@ -325,19 +324,22 @@ foreach($ar[0] as $ele){
 	
 	
 	}
-*/	
-$seo_keywords=$title;
+	* */
+
+$seo_keywords.=$title;
 $seo_title= $title;
 $seo_description=trim(substr($seo_raw_des,0,150));
 
 $seo= array(
 'title' => $seo_title,
-'keywords' => $seo_keywords,
- 'description' => $seo_description
+'keywords' => $seo_ultimate_keywords,
+ 'description' => $seo_ultimate_description
  );
 
 foreach($seo as $key=>$value){
 	$metakey='_aioseop_'.$key;
+	$value=mysql_real_escape_string(mb_convert_encoding($value, 'HTML-ENTITIES', "UTF-8"));
+	
 $sql="INSERT INTO wp_postmeta(post_id,meta_key,meta_value)"."VALUES('$post_id','$metakey','$value')";
 mysql_query($sql) or die(mysql_error());
 
@@ -348,7 +350,7 @@ mysql_query($sql) or die(mysql_error());
 //Last Step insterting the link into the database
 mysql_query("INSERT IGNORE INTO wp_auto_valid(post_id,links)VALUES('$post_id','$link_id')");
 $link_count++;
-if($link_count==10)break;
+if($link_count==$post_number)break;
 }
 }
 endforeach;
