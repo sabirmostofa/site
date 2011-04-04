@@ -2,7 +2,7 @@
 //Database configuration
 define('DB_HOST','localhost');
 define('DB_USERNAME','root');
-define('DB_PASS','11235813');
+define('DB_PASS','');
 define('DB_NAME','wordpress1');
 
 //domain

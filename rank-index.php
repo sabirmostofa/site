@@ -1,99 +1,55 @@
 <?php
-//required files
-require 'config.php' ;
-
-require 'functions.php';
-
+require_once('functions.php');
+require_once('config.php');
 require_once('tags.php');
 
+$time=new DateTime();
+$unique_timestamp=$time->getTimeStamp();
 
 
+$feeds=array('topfreeapplications');
 
 
-$links = array();
-$ult=new DOMDocument();
-@$ult->loadHTMLFile('http://www.apple.com/iphone/apps-for-iphone/app-of-the-week/');
-
-  
-  //getting the preferred part 
-$raw=$ult->saveXML($ult->getElementById('content'));
-$ult->loadHTML($raw);
-
-
-//getting the links from app of the week page
-foreach($ult->getElementsByTagName('a') as $link){
-if(preg_match('?http://itunes.apple.com/us/app/|http://itunes.apple.com/WebObjects/MZStore.woa/wa/viewSoftware?', $link->getAttribute('href'))){
-$links[] =  $link->getAttribute('href');
-}
-
-}
+$opts = array(
+  'http'=>array(
+    'method'=>"GET",
+    'header'=>"Accept-language: en\r\n"
+  )
+);
+$context = stream_context_create($opts);
+// Open the file using the HTTP headers set above
+$content = file_get_contents('http://itunes.apple.com/us/rss/topfreeapplications/limit=300/xml', false, $context);
 
 
-//adding more links
-
-$ult_link = 'http://itunes.apple.com/us/genre/ios/id36?mt=8';
-$sep=new DOMDocument();
-@$sep->loadHTMLFile($ult_link);
-$count=0;
-$genre_array= array();
-
-foreach($sep->getElementsByTagName('a')as $node){
-
-if(preg_match('?http://itunes.apple.com/us/genre/ios?', $node->getAttribute('href'))){
-if(preg_match('?http://itunes.apple.com/us/genre/ios/id36?', $node->getAttribute('href')))continue;
-$genre_array[]=$node->getAttribute('href');
-$count++;
-}
-}
-
-shuffle($genre_array);
-$count=0;
-foreach($genre_array as $genre):
-if(++$count == 5)break;
-@$sep->loadHTMLFile($genre);
-
-foreach($sep->getElementsByTagName('a')as $node)
-if(preg_match('?http://itunes.apple.com/us/app/|http://itunes.apple.com/WebObjects/MZStore.woa/wa/viewSoftware?', $node->getAttribute('href')))
-if(!preg_match('?[^A-Za-z0-9\'"; $%^&*()<>_\-+=`~/\]\\\|.,/@#!\?\[:]?',$node->nodeValue))
-$links[]=$node->getAttribute('href');
-
-endforeach;
-
-require_once 'connection.php';
-
-//pinging the connection
-if(!mysql_ping($p)){
-	
-	$p=mysql_connect(DB_HOST,DB_USERNAME,DB_PASS);
-if (!$p) {
-    die('Could not connect: ' . mysql_error());
-}
-echo 'Connected successfully';
+//$content = file_get_contents('test.xml');
 
 
-$selected=mysql_select_db(DB_NAME,$p);
-if (!$selected) {
-    die ('Can\'t use Database : ' . mysql_error());
-}
+preg_match_all('/<link+.[^>]+\/>/',$content,$a);
+
+$linkArray=array();
+
+foreach($a[0] as $single){
+	if(preg_match('/href=+.[^>]+\//',$single,$test))
+		if(
+		preg_match('?http://itunes.apple.com/us/app/|http://itunes.apple.com/WebObjects/MZStore.woa/wa/viewSoftware?',$test[0]))	
+			$linkArray[]='h'.(trim(trim($test[0],'href="/\'')));
+            	
 	}
 	
-	echo 'after getting links';
-
-
-shuffle($links);
 
 
 
 
 
 
+require_once('rank-connection.php');
 
 //counting posts
 $link_count=0;
-$post_number=rand(15,25);
+$post_number=2;
 
 //The Main loop
-foreach($links as $link):
+foreach($linkArray as $current_ran => $link):
 	//getting the id from the link
 	preg_match('/id+=?+[0-9]*/',$link,$ar);
     $link_id = trim(trim($ar[0],'id'),'=');
@@ -347,14 +303,52 @@ mysql_query($sql) or die(mysql_error());
 //Last Step insterting the link into the database
 mysql_query("INSERT IGNORE INTO wp_auto_valid(post_id,links)VALUES('$post_id','$link_id')");
 $link_count++;
-if($link_count==$post_number)break;
+
 }
-}
+}//end of main if
+
+
+//populating the wp_auto_ranks table
+$current_rank=$current_ran+1;
+$query="select post_id from wp_auto_valid where links='$link_id'";
+ $post_id=mysql_result(mysql_query($query),0);
+
+foreach($feeds as $feedCounter => $feedName):
+
+if(in_table_multiple('wp_auto_ranks',$feedCounter,$post_id)):
+ $query="select ranks from wp_auto_ranks where post_id='$post_id' and feed_id='$feedCounter'";
+ $result=mysql_query($query) or die(mysql_error()); 
+	 if(mysql_num_rows($result)!=0):
+	 $ranks=mysql_result($result,0);
+	 $tmp_ranks= explode(';',$ranks);
+	 
+	 if(count($tmp_ranks) >= 20)
+		 array_shift($tmp_ranks);
+		 
+	 $ranks=implode(';',$tmp_ranks);
+	 $newRank=$current_rank.','.gmdate('Y-m-d H:i:s');
+	 $ranks=$ranks.';'.$newRank;
+	 $query="update wp_auto_ranks set ranks='$ranks',current_rank='$current_rank',update_timestamp='$unique_timestamp' where post_id='$post_id' and feed_id='$feedCounter'";
+	 mysql_query($query) or die(mysql_error());    
+	 endif;
+ 
+else:
+$newRank=$current_rank.','.gmdate('Y-m-d H:i:s');
+$query="insert into wp_auto_ranks(feed_id,post_id,ranks,current_rank,update_timestamp) values('$feedCounter','$post_id','$newRank','$current_rank','$unique_timestamp')";
+mysql_query($query) or die(mysql_error());
+
+endif;
+
 endforeach;
 
 
-?>
+//if($link_count==$post_number)break;
 
+endforeach;//main foreach
+
+
+$query="update wp_auto_ranks set current_rank=-1 where update_timestamp!='$unique_timestamp'";
+mysql_query($query) or die(mysql_error());
 
 
 

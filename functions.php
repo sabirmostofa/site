@@ -62,4 +62,14 @@ if($row[0]>0)return 1;
 return;
 }
 
+//for checking two columns
+
+function in_table_multiple($table,$feed,$post){	
+$query="SELECT count(*) FROM $table where feed_id='$feed' and post_id='$post'";
+$result = mysql_query($query) or die(mysql_error());
+$row=mysql_fetch_row($result);
+if($row[0]>0)return 1;
+return 0;
+}
+
 ?>

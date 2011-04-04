@@ -44,6 +44,24 @@ key invalid_links(invalid_links)
 mysql_query($sql1) or die(mysql_error());
 
 
+$sql2="CREATE TABLE IF NOT EXISTS wp_auto_ranks(
+id INT NOT NULL auto_increment,
+feed_id tinyint unsigned not null,
+post_id INT unsigned NOT NULL ,
+ranks text not null,
+current_rank smallint NOT NULL default -1,
+update_timestamp bigint(20) unsigned NOT NULL,
+
+PRIMARY KEY(id),
+key feed_id(feed_id),
+key post_id(post_id),
+key current_rank(current_rank),
+KEY update_timestamp (update_timestamp)
+)";
+
+mysql_query($sql2) or die(mysql_error());
+
+
 
 
 //connecting using ftp
