@@ -51,6 +51,9 @@ post_id INT unsigned NOT NULL ,
 ranks text not null,
 current_rank smallint NOT NULL default -1,
 update_timestamp bigint(20) unsigned NOT NULL,
+highest_rank tinytext NOT NULL default '',
+lowest_rank tinytext NOT NULL default '',
+
 
 PRIMARY KEY(id),
 key feed_id(feed_id),

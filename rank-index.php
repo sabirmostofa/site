@@ -3,8 +3,8 @@ require_once('functions.php');
 require_once('config.php');
 require_once('tags.php');
 
-$time=new DateTime();
-$unique_timestamp=$time->getTimeStamp();
+//$time=new DateTime();
+$unique_timestamp=time();
 
 
 $feeds=array('topfreeapplications');
@@ -18,7 +18,7 @@ $opts = array(
 );
 $context = stream_context_create($opts);
 // Open the file using the HTTP headers set above
-$content = file_get_contents('http://itunes.apple.com/us/rss/topfreeapplications/limit=300/xml', false, $context);
+$content = file_get_contents('http://itunes.apple.com/us/rss/topfreeapplications/limit=50/xml', false, $context);
 
 
 //$content = file_get_contents('test.xml');
@@ -46,7 +46,7 @@ require_once('rank-connection.php');
 
 //counting posts
 $link_count=0;
-$post_number=2;
+//$post_number=2;
 
 //The Main loop
 foreach($linkArray as $current_ran => $link):
@@ -309,9 +309,13 @@ $link_count++;
 
 
 //populating the wp_auto_ranks table
+
+$post_id='';
 $current_rank=$current_ran+1;
 $query="select post_id from wp_auto_valid where links='$link_id'";
  $post_id=mysql_result(mysql_query($query),0);
+ 
+ if($post_id == '')continue;
 
 foreach($feeds as $feedCounter => $feedName):
 
@@ -321,6 +325,54 @@ if(in_table_multiple('wp_auto_ranks',$feedCounter,$post_id)):
 	 if(mysql_num_rows($result)!=0):
 	 $ranks=mysql_result($result,0);
 	 $tmp_ranks= explode(';',$ranks);
+	 
+	 
+	 //Highest rank
+	  $query="select highest_rank from wp_auto_ranks where post_id='$post_id' and feed_id='$feedCounter'";
+	   $result=mysql_query($query) or die(mysql_error()); 
+	   $test_rank=mysql_result($result,0);
+	   
+	   
+	   if(preg_match('/^[0-9]*+,/',$test_rank,$match))
+	   $test_rank==trim(trim($match[0], ','));
+	   else
+	   $test_rank=999999;
+	   
+	   $rank_to_update=$current_rank .','.gmdate('Y-m-d H:i:s');
+	   
+       if($current_rank < $test_rank){
+		    $query="update wp_auto_ranks set highest_rank='$rank_to_update' where post_id='$post_id' and feed_id='$feedCounter'";
+		     mysql_query($query) or die(mysql_error());   
+		   
+		   
+		   }
+		   
+		   //lowest rank
+		   
+		   
+		    $query="select lowest_rank from wp_auto_ranks where post_id='$post_id' and feed_id='$feedCounter'";
+	   $result=mysql_query($query) or die(mysql_error()); 
+	   $test_rank=mysql_result($result,0);
+	   
+	   
+	   if(preg_match('/^[0-9]*+,/',$test_rank,$match))
+	   $test_rank==trim(trim($match[0], ','));
+	   else
+	   $test_rank=0;
+	   
+	   $rank_to_update=$current_rank.','.gmdate('Y-m-d H:i:s');
+	   
+       if($current_rank > $test_rank){
+		    $query="update wp_auto_ranks set lowest_rank='$rank_to_update' where post_id='$post_id' and feed_id='$feedCounter'";
+		     mysql_query($query) or die(mysql_error());   
+		   
+		   
+		   }	
+		   
+		   
+	 
+	 
+	 //trimming the ranks field to keep only 20 records
 	 
 	 if(count($tmp_ranks) >= 20)
 		 array_shift($tmp_ranks);
