@@ -112,6 +112,8 @@ if($i==1)break;
 
 $description = preg_replace('/<div+[^>]+>/','',$raw_description);
 $description = preg_replace('?</div>?','',$description);
+if(preg_match('/<h4>+[^<]+<\/h4>/s', $description))
+ $description = preg_replace('/<h4>+[^<]+<\/h4>/s', '', $description);
 $description = mysql_real_escape_string(mb_convert_encoding($description, 'HTML-ENTITIES', "UTF-8"));
 
 
@@ -285,8 +287,8 @@ $seo_description=trim(substr($seo_raw_des,0,150));
 
 $seo= array(
 'title' => $seo_title,
-'keywords' => $seo_ultimate_keywords,
- 'description' => $seo_ultimate_description
+'keywords' => $seo_ultimate_keywords
+ //'description' => $seo_ultimate_description
  );
 
 foreach($seo as $key=>$value){
